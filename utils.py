@@ -1,5 +1,6 @@
 from rocketpy import Flight
 from typing import Union
+import models
 
 def drogue_trigger(p, h, y):
     # Check if rocket is going down, i.e. if it has passed the apogee
@@ -11,7 +12,8 @@ def main_trigger(p,h,y):
     vertical_velocity = y[5]
     return y[5] < 0 and h <= 400 # False if you want ballistic
 
-def filter_flight_data(flight: Flight) -> dict:
-    return {
-        "velocity": flight.apogee,
-    }
+def filter_flight_data(flight: Flight) -> models.Flight:
+    return models.Flight(
+        x_impact=flight.x_impact,
+        y_impact=flight.y_impact,
+    )

@@ -1,4 +1,5 @@
 from params import ANALYSIS_PARAMETERS, df
+import time
 from utils import drogue_trigger, main_trigger
 import pandas as pd
 import pyfluids
@@ -11,6 +12,7 @@ import numpy
 from typing import Union
 
 analysis_parameters: pd.DataFrame = ANALYSIS_PARAMETERS
+
 
 def flight_settings(analysis_parameters: Union[tuple, float], total_number: int):
     i = 0
@@ -34,6 +36,7 @@ def get_MC_sim_result(num_sims: int = 10) -> list[Flight]:
     MC_sim_result: list[Flight] = []
 
     for setting in flight_settings(analysis_parameters, num_sims):
+        start = time.perf_counter()
 
         Env = Environment(
             date=(2024,7, 2, 12),
@@ -47,6 +50,7 @@ def get_MC_sim_result(num_sims: int = 10) -> list[Flight]:
             file="inputs/MC_env.nc",
             dictionary="ECMWF"
         )
+        print("Load env: ", time.perf_counter() - start)
 
         N2O_T = setting["ox_temp"] # C, target with mechanical relief valve
         fuel_T = 20
@@ -166,6 +170,8 @@ def get_MC_sim_result(num_sims: int = 10) -> list[Flight]:
             gas_mass_flow_rate_out=lambda t: n2_mdot if t < burnout_time else 0,
         )
 
+        print("Load tanks: ", time.perf_counter() - start)
+
         thrust = pd.read_csv("inputs/rocketpyeng.csv")
         thrust.iat[2,0] = burnout_time-0.5
         thrust.iat[3,0] = burnout_time
@@ -173,6 +179,7 @@ def get_MC_sim_result(num_sims: int = 10) -> list[Flight]:
 
         thrust.to_csv("inputs/rocketpyeng.csv", index = False)
 
+        print("Load thrust: ", time.perf_counter() - start)
 
         liquid_motor = LiquidMotor(
             thrust_source=r"inputs\rocketpyeng.csv",
@@ -198,6 +205,8 @@ def get_MC_sim_result(num_sims: int = 10) -> list[Flight]:
             center_of_mass_without_motor=setting["cg"],
             coordinate_system_orientation="nose_to_tail"
         )
+
+        print("Load rocket: ", time.perf_counter() - start)
 
         NoseCone = heimdal.add_nose(
             length = setting["nose_length"],
@@ -238,6 +247,8 @@ def get_MC_sim_result(num_sims: int = 10) -> list[Flight]:
             sampling_rate=105,
             lag=setting["main_lag"]
         )
+
+        print("Load rocket components: ", time.perf_counter() - start)
             
 
         try: 
@@ -248,9 +259,11 @@ def get_MC_sim_result(num_sims: int = 10) -> list[Flight]:
                 inclination = setting["inclination"],
                 heading = setting["heading"],
                 max_time = 1500,
-                terminate_on_apogee = False              
+                terminate_on_apogee = False,
             )
 
+            print("Run sim: ", time.perf_counter() - start)
+            print("x: ", test_flight.x_impact, "y: ", test_flight.y_impact)
             MC_sim_result.append(test_flight)
         except Exception as E:
             print("Error during simulation:", E)

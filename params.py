@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-df = pd.read_excel("Input_values.xlsx", index_col=1)
+df = pd.read_excel("input_values.xlsx", index_col=1)
 
 # --- tidy the columns exactly as before ---
 headers = df.iloc[0].values          # old first row becomes column names
