@@ -1,5 +1,8 @@
+from dataclasses import dataclass
+from tarfile import data_filter
 import numpy as np
 import pandas as pd
+import models
 
 df = pd.read_excel("input_values.xlsx", index_col=1)
 
@@ -70,3 +73,15 @@ ANALYSIS_PARAMETERS = {
     "main_Cd_s":       (v("main_cds"), 0.01 * v("main_cds")),
     "main_lag":        (v("main_total_lag"), 0.01 * v("main_total_lag")),
 }
+
+
+class ExtendedRocketParameters:
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            if key in ANALYSIS_PARAMETERS:
+                setattr(self, key, value)
+            else:
+                raise ValueError(f"Invalid parameter: {key}")
+
+def get_flight_settings(r: models.RocketParams) -> dict:
+    return ExtendedRocketParameters(ANALYSIS_PARAMETERS.copy())
