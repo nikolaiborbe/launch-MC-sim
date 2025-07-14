@@ -1,0 +1,7 @@
+# pyproject.toml
+[tool.mypy]
+python_version = "3.11.1"
+
+[tool.mypy.overrides]
+module = ["rocketpy.*"]
+ignore_missing_imports = true

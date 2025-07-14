@@ -1,8 +1,10 @@
+import requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
-import requests
+
 
 from models import Weather
+
 
 USER_AGENT = "my-cool-app/1.0 " "(contact: nikolaiborbe@gmail.com)"
 
@@ -17,7 +19,7 @@ def _ts_to_weather(ts: dict) -> Weather:
     )
 
 
-def get_weather(t: datetime, lat: float = 63.786667, lon: float = 9.363056) -> Weather:
+async def get_weather(t: datetime, lat: float = 63.786667, lon: float = 9.363056) -> Weather:
     """
     Return the first forecast *at or after* the UTC instant *t*
     for the coordinates defined by lat, lon.

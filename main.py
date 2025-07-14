@@ -1,11 +1,27 @@
-from urllib import response
-from rocketpy import Flight
 import datetime
-import weather
-from fastapi import FastAPI,  Depends
-from utils import filter_flight_data
+from rocketpy import Flight  # type: ignore
+from fastapi import FastAPI, Depends
+from pydantic import BaseModel, Field
+
 import models
-from MC import get_MC_sim_result
+from weather import get_weather
+from utils import filter_flight_data
+from mc import get_mc_sim_result
+
+
+class MCParams(BaseModel):
+    num_sims: int = Field(
+        10, gt=0, description="Number of Monte Carlo simulations to run."
+    )
+    launch_time: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
+        description="Time of the rocket launch.",
+    )
+    rocket_params: models.RocketParams = Field(
+        default_factory=models.RocketParams,
+        description="Parameters for the rocket being simulated.",
+    )
+
 
 app = FastAPI(
     title="MC Simulation Server",
@@ -13,20 +29,24 @@ app = FastAPI(
 )
 
 
-@app.get("/MC-sim")
-def get_MC_sim(MC_params: models.MCParams = Depends()):
-    # list of flight sims
-    time = datetime.datetime(MC_params.time)
+@app.post("/mc-sim", response_model=list[models.FlightData])
+async def get_mc_sim(mc_params: MCParams):
 
-    result: list[Flight] = get_MC_sim_result(r = models.rocketParams, w = weather.get_weather(time), t = time)
+    weather = await get_weather(mc_params.launch_time)
 
-    data: list[models.Flight] = [filter_flight_data(flight) for flight in result]
+    result: list[Flight] = get_mc_sim_result(
+        mc_params.rocket_params,
+        weather,
+        mc_params.launch_time,
+    )
+
+    data: list[models.FlightData] = [filter_flight_data(flight) for flight in result]
 
     return {"data": data}
 
 
 @app.get("/")
-def root():
+async def root():
     return {
         "message": "Server for Monte Carlo simulations of rocket launches.",
     }

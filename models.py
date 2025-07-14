@@ -1,19 +1,16 @@
 from dataclasses import dataclass
-from datetime import datetime
+
 
 @dataclass(slots=True)
-class MCParams:
-    num: int
-    time: str
-
-@dataclass(slots=True)
-class Flight:
+class FlightData:
     x_impact: float
     y_impact: float
 
+
 @dataclass(slots=True)
 class RocketParams:
-    elevation: tuple[float, float] = (20., 1.)  # m
+    elevation: float = 20.0  # m
+
 
 @dataclass(slots=True)
 class Weather:

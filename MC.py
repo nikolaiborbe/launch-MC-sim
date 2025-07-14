@@ -1,14 +1,10 @@
-from models import RocketParams, Weather
-from params import ANALYSIS_PARAMETERS, df
-import weather
 import time
-from zoneinfo import ZoneInfo
+import numpy
 import datetime
-from utils import drogue_trigger, main_trigger, construct_env
+import pyfluids  # type: ignore
 import pandas as pd
-import pyfluids
-from rocketpy import (
-    Environment,
+from zoneinfo import ZoneInfo
+from rocketpy import ( # type: ignore
     Rocket,
     Flight,
     LiquidMotor,
@@ -16,16 +12,16 @@ from rocketpy import (
     CylindricalTank,
     Fluid,
 )
-import numpy
-from typing import Union
-
-analysis_parameters: pd.DataFrame = ANALYSIS_PARAMETERS
 
 
-def flight_settings(analysis_parameters: Union[tuple, float], total_number: int):
-    i = 0
-    while i < total_number:
-        # Generate a flight setting
+from utils import drogue_trigger, main_trigger, construct_env
+from params import df, get_parameters
+from models import RocketParams, Weather
+
+
+def flight_settings(analysis_parameters: dict, total_number: int):
+    i = -1
+    while (i := i + 1) < total_number:
         flight_setting = {}
         for parameter_key, parameter_value in analysis_parameters.items():
             if type(parameter_value) is tuple:
@@ -33,31 +29,26 @@ def flight_settings(analysis_parameters: Union[tuple, float], total_number: int)
             else:
                 flight_setting[parameter_key] = numpy.random.choice(parameter_value)
 
-        # Update counter
-        i += 1
-
-        # Yield a flight setting
         yield flight_setting
 
 
-def get_MC_sim_result(r: RocketParams, w: Weather, t: datetime.datetime, num_sims: int = 10) -> list[Flight]:
+def get_mc_sim_result(
+    r: RocketParams, w: Weather, t: datetime.datetime, num_sims: int = 10
+) -> list[Flight]:
     MC_sim_result: list[Flight] = []
 
     env = construct_env(
         r,
         w,
-        time=t,
-        lat=df.loc["latitude"][1],
-        lon=df.loc["longitude"][1],
-        launch_time=datetime.datetime.now(ZoneInfo("Europe/Oslo")),
+        time=datetime.datetime.now(ZoneInfo("Europe/Oslo")),
+        lat=float(df.loc["latitude"][1]),
+        lon=float(df.loc["longitude"][1]),
         climatology_file="inputs/MC_env.nc",
     )
 
-    print("Load env: ", time.perf_counter() - start)
 
-    for setting in flight_settings(analysis_parameters, num_sims):
+    for setting in flight_settings(get_parameters(r), num_sims):
         start = time.perf_counter()
-
 
         N2O_T = setting["ox_temp"]  # C, target with mechanical relief valve
         fuel_T = 20
