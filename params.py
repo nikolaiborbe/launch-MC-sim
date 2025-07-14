@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd
+import pandas as pd # type: ignore
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any

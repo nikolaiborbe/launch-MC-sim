@@ -40,7 +40,7 @@ def get_mc_sim_result(
     env = construct_env(
         r,
         w,
-        time=datetime.datetime.now(ZoneInfo("Europe/Oslo")),
+        time=t,
         lat=float(df.loc["latitude"][1]),
         lon=float(df.loc["longitude"][1]),
         climatology_file="inputs/MC_env.nc",
@@ -182,7 +182,7 @@ def get_mc_sim_result(
             gas_mass_flow_rate_out=lambda t: n2_mdot if t < burnout_time else 0,
         )
 
-        print("Load tanks: ", time.perf_counter() - start)
+        print("Load tanks: ", time.perf_counter() - start, " s")
 
         thrust = pd.read_csv("inputs/rocketpyeng.csv")
         thrust.iat[2, 0] = burnout_time - 0.5
@@ -190,7 +190,7 @@ def get_mc_sim_result(
 
         thrust.to_csv("inputs/rocketpyeng.csv", index=False)
 
-        print("Load thrust: ", time.perf_counter() - start)
+        print("Load thrust: ", time.perf_counter() - start, " s")
 
         liquid_motor = LiquidMotor(
             thrust_source=r"inputs\rocketpyeng.csv",
@@ -224,7 +224,7 @@ def get_mc_sim_result(
             coordinate_system_orientation="nose_to_tail",
         )
 
-        print("Load rocket: ", time.perf_counter() - start)
+        print("Load rocket: ", time.perf_counter() - start, " s")
 
         NoseCone = heimdal.add_nose(
             length=setting["nose_length"], kind="von karman", position=0
@@ -263,7 +263,7 @@ def get_mc_sim_result(
             lag=setting["main_lag"],
         )
 
-        print("Load rocket components: ", time.perf_counter() - start)
+        print("Load rocket components: ", time.perf_counter() - start, " s")
 
         try:
             test_flight = Flight(
@@ -276,7 +276,7 @@ def get_mc_sim_result(
                 terminate_on_apogee=False,
             )
 
-            print("Run sim: ", time.perf_counter() - start)
+            print("Run sim: ", time.perf_counter() - start, " s")
             print("x: ", test_flight.x_impact, "y: ", test_flight.y_impact)
             MC_sim_result.append(test_flight)
         except Exception as E:

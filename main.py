@@ -2,6 +2,7 @@ import datetime
 from rocketpy import Flight  # type: ignore
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel, Field
+from typing import List
 
 import models
 from weather import get_weather
@@ -29,7 +30,7 @@ app = FastAPI(
 )
 
 
-@app.post("/mc-sim", response_model=list[models.FlightData])
+@app.post("/mc-sim", response_model=List[models.FlightData])
 async def get_mc_sim(mc_params: MCParams):
 
     weather = await get_weather(mc_params.launch_time)
@@ -40,9 +41,9 @@ async def get_mc_sim(mc_params: MCParams):
         mc_params.launch_time,
     )
 
-    data: list[models.FlightData] = [filter_flight_data(flight) for flight in result]
+    data: List[models.FlightData] = [filter_flight_data(flight) for flight in result]
 
-    return {"data": data}
+    return data
 
 
 @app.get("/")
