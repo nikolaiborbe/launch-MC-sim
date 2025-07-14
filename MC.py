@@ -3,8 +3,7 @@ import numpy
 import datetime
 import pyfluids  # type: ignore
 import pandas as pd
-from zoneinfo import ZoneInfo
-from rocketpy import ( # type: ignore
+from rocketpy import (  # type: ignore
     Rocket,
     Flight,
     LiquidMotor,
@@ -35,6 +34,7 @@ def flight_settings(analysis_parameters: dict, total_number: int):
 def get_mc_sim_result(
     r: RocketParams, w: Weather, t: datetime.datetime, num_sims: int = 10
 ) -> list[Flight]:
+    function_time = time.perf_counter()
     MC_sim_result: list[Flight] = []
 
     env = construct_env(
@@ -45,7 +45,6 @@ def get_mc_sim_result(
         lon=float(df.loc["longitude"][1]),
         climatology_file="inputs/MC_env.nc",
     )
-
 
     for setting in flight_settings(get_parameters(r), num_sims):
         start = time.perf_counter()
@@ -128,7 +127,6 @@ def get_mc_sim_result(
         else:
             burnout_time = (ox_mass / ox_mdot) * 0.99999
 
-        print(burnout_time)
         n2_mdot = n2_mass / burnout_time
 
         # burnout_time /=2 ##for half burn
@@ -182,7 +180,7 @@ def get_mc_sim_result(
             gas_mass_flow_rate_out=lambda t: n2_mdot if t < burnout_time else 0,
         )
 
-        print("Load tanks: ", time.perf_counter() - start, " s")
+        load_tanks_t = time.perf_counter() - start
 
         thrust = pd.read_csv("inputs/rocketpyeng.csv")
         thrust.iat[2, 0] = burnout_time - 0.5
@@ -190,7 +188,7 @@ def get_mc_sim_result(
 
         thrust.to_csv("inputs/rocketpyeng.csv", index=False)
 
-        print("Load thrust: ", time.perf_counter() - start, " s")
+        load_thrust_t = time.perf_counter() - start
 
         liquid_motor = LiquidMotor(
             thrust_source=r"inputs\rocketpyeng.csv",
@@ -224,7 +222,7 @@ def get_mc_sim_result(
             coordinate_system_orientation="nose_to_tail",
         )
 
-        print("Load rocket: ", time.perf_counter() - start, " s")
+        load_rocket_t = time.perf_counter() - start
 
         NoseCone = heimdal.add_nose(
             length=setting["nose_length"], kind="von karman", position=0
@@ -263,7 +261,7 @@ def get_mc_sim_result(
             lag=setting["main_lag"],
         )
 
-        print("Load rocket components: ", time.perf_counter() - start, " s")
+        load_rocket_comp_t = time.perf_counter() - start
 
         try:
             test_flight = Flight(
@@ -274,13 +272,45 @@ def get_mc_sim_result(
                 heading=setting["heading"],
                 max_time=1500,
                 terminate_on_apogee=False,
+                
             )
 
-            print("Run sim: ", time.perf_counter() - start, " s")
-            print("x: ", test_flight.x_impact, "y: ", test_flight.y_impact)
+            run_sim_t = time.perf_counter() - start
+            print(
+                """
+Load settings:
+---------------------------
+Load tanks: {:.4f} s
+Load thrust: {:.4f} s
+Load rocket: {:.4f} s
+Load rocket components: {:.4f} s
+Run sim: {:.4f} s
+
+Impact coordinates:
+---------------------------
+x_impact: {:.2f} m
+y_impact: {:.2f} m
+
+===========================
+                  """.format(
+                    load_tanks_t,
+                    load_thrust_t,
+                    load_rocket_t,
+                    load_rocket_comp_t,
+                    run_sim_t,
+                    test_flight.x_impact,
+                    test_flight.y_impact,
+                )
+            )
             MC_sim_result.append(test_flight)
         except Exception as E:
             print("Error during simulation:", E)
             continue
+
+    dt = time.perf_counter() - function_time
+    print(
+        f"Total time for {num_sims} simulations: {dt:.4f} s, \n"
+        f"Average time per simulation: {dt/num_sims:.4f} s"
+    )
 
     return MC_sim_result
